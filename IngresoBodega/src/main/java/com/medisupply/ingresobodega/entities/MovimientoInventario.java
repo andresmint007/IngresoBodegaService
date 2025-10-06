@@ -22,6 +22,8 @@ public class MovimientoInventario {
         this.productoID = productoID;
         this.ordenVentaID = ordenVentaID;
     }
+    public MovimientoInventario() {
+    }
 
     public String getMovimientoInventarioID() {
         return movimientoInventarioID;

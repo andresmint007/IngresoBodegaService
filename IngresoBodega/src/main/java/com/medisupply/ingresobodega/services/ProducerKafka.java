@@ -7,7 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 @Service
 public class ProducerKafka {
 
-    private static final String TOPIC = "Inventory";
+    private static final String TOPIC = "Income";
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;

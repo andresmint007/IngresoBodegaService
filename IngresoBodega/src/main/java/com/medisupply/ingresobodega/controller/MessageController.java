@@ -13,7 +13,9 @@ public class MessageController {
     private ProducerKafka producer;
 
     @GetMapping("/send")
-    public String sendMsg(@RequestParam("msg") String mensaje) {
+    public String sendMsg(@RequestParam("productoID") String productoID, @RequestParam("stock") int stock) {
+        // Construir el JSON esperado por el consumidor
+        String mensaje = String.format("{\"productoID\":\"%s\",\"stock\":%d}", productoID, stock);
         producer.sendMessage(mensaje);
         return "Mensaje enviado: " + mensaje;
     }
