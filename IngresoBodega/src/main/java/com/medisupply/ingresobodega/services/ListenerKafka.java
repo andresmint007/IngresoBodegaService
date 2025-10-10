@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medisupply.ingresobodega.entities.MovimientoInventario;
 import com.medisupply.ingresobodega.repository.DynamoDbRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,13 @@ public class ListenerKafka {
     KafkaTemplate<String, String> kafkaTemplate;
     @Autowired
     ObjectMapper objectMapper;
+    @Value("${kafka.topic.inventario}")
+    private String topicInventario;
 
-    @KafkaListener(topics = "Income", groupId = "group2")
+    @KafkaListener(
+            topics = "${kafka.topic.inventario-recibido}",
+            groupId = "${kafka.group.all}"
+    )
     public void procesarEvento(String mensajeJson) throws Exception {
         try {
             JsonNode json = objectMapper.readTree(mensajeJson);
@@ -42,7 +48,7 @@ public class ListenerKafka {
                 int nuevoStock = ingresos.stream().mapToInt(MovimientoInventario::getCantidad).sum();
 
                 String eventoSalida = "{ \"productoID\": \"" + productoID + "\", \"stock\": " + nuevoStock + " }";
-                kafkaTemplate.send("UpdateStock", eventoSalida);
+                kafkaTemplate.send(topicInventario, eventoSalida);
             }else{
                 System.out.println("Producto no encontrado, nombre: "  + productoID);
             }
