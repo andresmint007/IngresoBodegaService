@@ -8,7 +8,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 @Service
 public class ProducerKafka {
 
-    @Value("${kafka.topic.inventario}")
+    @Value("${kafka.topic.inventario-recibido}")
     private String topic;
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;

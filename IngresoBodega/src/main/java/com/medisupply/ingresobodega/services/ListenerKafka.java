@@ -3,6 +3,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.medisupply.ingresobodega.entities.MovimientoInventario;
+import com.medisupply.ingresobodega.entities.RegistroBlockchain;
 import com.medisupply.ingresobodega.repository.DynamoDbRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +25,8 @@ public class ListenerKafka {
     ObjectMapper objectMapper;
     @Value("${kafka.topic.inventario}")
     private String topicInventario;
+    @Autowired
+    private EventoService eventoService;
 
     @KafkaListener(
             topics = "${kafka.topic.inventario-recibido}",
@@ -31,6 +34,7 @@ public class ListenerKafka {
     )
     public void procesarEvento(String mensajeJson) throws Exception {
         try {
+            String tipoEvento= "recepcion";
             JsonNode json = objectMapper.readTree(mensajeJson);
             String productoID = json.get("productoID").asText();
             int cantidad = json.get("stock").asInt();
@@ -39,7 +43,7 @@ public class ListenerKafka {
                 MovimientoInventario mov = new MovimientoInventario();
                 mov.setMovimientoInventarioID(UUID.randomUUID().toString());
                 mov.setProductoID(productoID);
-                mov.setTipoMovimiento("Ingreso");
+                mov.setTipoMovimiento(tipoEvento);
                 mov.setCantidad(cantidad);
                 mov.setFechaMovimiento(new Date().toString());
                 repo.guardarMovimiento(mov);
@@ -47,7 +51,9 @@ public class ListenerKafka {
                 List<MovimientoInventario> ingresos = repo.buscarMovimientosIngreso(productoID);
                 int nuevoStock = ingresos.stream().mapToInt(MovimientoInventario::getCantidad).sum();
 
+
                 String eventoSalida = "{ \"productoID\": \"" + productoID + "\", \"stock\": " + nuevoStock + " }";
+                EnviarTransaccion(tipoEvento,productoID,eventoSalida,"Laboratorio XYZ");
                 kafkaTemplate.send(topicInventario, eventoSalida);
             }else{
                 System.out.println("Producto no encontrado, nombre: "  + productoID);
@@ -58,4 +64,25 @@ public class ListenerKafka {
             throw new RuntimeException(e);
         }
     }
+    private String EnviarTransaccion(String tipoEvento, String productoID, String evento, String ActorEmisor) {
+        String response = "";
+        try {
+
+            RegistroBlockchain registroBlockchain = new RegistroBlockchain(
+                    tipoEvento,
+                    productoID,
+                    evento,
+                    ActorEmisor
+            );
+
+            response = eventoService.enviarEvento(registroBlockchain);
+            System.out.println("Respuesta del servicio: " + response);
+        } catch (Exception e) {
+            response = "Error al enviar la transacción: " + e.getMessage();
+            System.err.println(response);
+            e.printStackTrace();
+        }
+        return response;
+    }
+
 }
